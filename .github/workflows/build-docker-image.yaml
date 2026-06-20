@@ -49,5 +49,7 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           push: true
-          tags: ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:latest
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:latest
+            ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:${{ github.sha }}
           platforms: linux/amd64,linux/arm64
