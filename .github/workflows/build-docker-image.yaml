@@ -15,6 +15,11 @@ on:
         description: Path to Dockerfile
         required: true
         type: string
+      multi-arch:
+        description: Enable multi-arch builds via QEMU
+        required: false
+        type: boolean
+        default: false
     secrets:
       token:
         required: true
@@ -31,6 +36,7 @@ jobs:
 
       # Migrate to native runners.
       - name: Set up QEMU
+        if: inputs.multi-arch
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -52,4 +58,4 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:latest
             ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:${{ github.sha }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ inputs.multi-arch && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
