@@ -53,6 +53,11 @@ jobs:
           DEPLOY_SSH_USER: ${{ secrets.deploy-ssh-user }}
           DEPLOY_NODE: ${{ secrets.deploy-node-primary }}
         run: |
+          NETWORK_ARG=""
+          if [ -n "$CONTAINER_NETWORK" ]; then
+            NETWORK_ARG="--network $CONTAINER_NETWORK"
+          fi
+
           ssh -o StrictHostKeyChecking=no "$DEPLOY_SSH_USER"@"$DEPLOY_NODE" "
             docker pull $IMAGE
             docker stop $CONTAINER_NAME || true
@@ -60,7 +65,7 @@ jobs:
             docker run -d \
               --name $CONTAINER_NAME \
               --restart unless-stopped \
-              $([ -n '$CONTAINER_NETWORK' ] && echo '--network $CONTAINER_NETWORK') \
+              $NETWORK_ARG \
               $IMAGE
           "
 
@@ -82,8 +87,13 @@ jobs:
           CONTAINER_NAME: ${{ inputs.container-name }}
           CONTAINER_NETWORK: ${{ inputs.container-network }}
           DEPLOY_SSH_USER: ${{ secrets.deploy-ssh-user }}
-          DEPLOY_NODE: ${{ secrets.deploy-node-secondary }}
+          DEPLOY_NODE: ${{ secrets.deploy-node-primary }}
         run: |
+          NETWORK_ARG=""
+          if [ -n "$CONTAINER_NETWORK" ]; then
+            NETWORK_ARG="--network $CONTAINER_NETWORK"
+          fi
+
           ssh -o StrictHostKeyChecking=no "$DEPLOY_SSH_USER"@"$DEPLOY_NODE" "
             docker pull $IMAGE
             docker stop $CONTAINER_NAME || true
@@ -91,6 +101,6 @@ jobs:
             docker run -d \
               --name $CONTAINER_NAME \
               --restart unless-stopped \
-              $([ -n '$CONTAINER_NETWORK' ] && echo '--network $CONTAINER_NETWORK') \
+              $NETWORK_ARG \
               $IMAGE
           "
