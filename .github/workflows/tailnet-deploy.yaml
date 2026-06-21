@@ -37,16 +37,17 @@ jobs:
   deploy:
     name: Deploy to ${{ matrix.node.name }}
     runs-on: ubuntu-latest
-    if: ${{ matrix.node.name == 'primary' || inputs.deploy-secondary }}
-
     strategy:
       matrix:
         node:
           - name: primary
+            hostname: ${{ secrets.deploy-node-primary }}
           - name: secondary
+            hostname: ${{ secrets.deploy-node-secondary }}
 
     steps:
       - name: Connect to Tailscale
+        if: ${{ matrix.node.name == 'primary' || inputs.deploy-secondary }}
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.ts-oauth-client-id }}
@@ -54,12 +55,13 @@ jobs:
           tags: tag:ci
 
       - name: Deploy to ${{ matrix.node.name }} node
+        if: ${{ matrix.node.name == 'primary' || inputs.deploy-secondary }}
         env:
           IMAGE: ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:latest
           CONTAINER_NAME: ${{ inputs.container-name }}
           CONTAINER_NETWORK: ${{ inputs.container-network }}
           DEPLOY_SSH_USER: ${{ secrets.deploy-ssh-user }}
-          DEPLOY_NODE: ${{ matrix.node.name == 'primary' && secrets.deploy-node-primary || secrets.deploy-node-secondary }}
+          DEPLOY_NODE: ${{ matrix.node.hostname }}
         run: |
           ssh -o StrictHostKeyChecking=no "$DEPLOY_SSH_USER"@"$DEPLOY_NODE" "
             docker pull $IMAGE
