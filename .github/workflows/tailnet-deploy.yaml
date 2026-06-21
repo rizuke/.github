@@ -87,7 +87,7 @@ jobs:
           CONTAINER_NAME: ${{ inputs.container-name }}
           CONTAINER_NETWORK: ${{ inputs.container-network }}
           DEPLOY_SSH_USER: ${{ secrets.deploy-ssh-user }}
-          DEPLOY_NODE: ${{ secrets.deploy-node-primary }}
+          DEPLOY_NODE: ${{ secrets.deploy-node-secondary }}
         run: |
           NETWORK_ARG=""
           if [ -n "$CONTAINER_NETWORK" ]; then
