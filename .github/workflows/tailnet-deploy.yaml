@@ -37,20 +37,13 @@ jobs:
   deploy:
     name: Deploy to ${{ matrix.node.name }}
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
+    if: ${{ matrix.node.name == 'primary' || inputs.deploy-secondary }}
 
     strategy:
       matrix:
         node:
           - name: primary
-            hostname-secret: DEPLOY_NODE_PRIMARY
           - name: secondary
-            hostname-secret: DEPLOY_NODE_SECONDARY
-        exclude:
-          - node:
-              name: secondary
-            deploy-secondary: ${{ !inputs.deploy-secondary }}
 
     steps:
       - name: Connect to Tailscale
