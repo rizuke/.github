@@ -1,0 +1,80 @@
+name: Deploy to homelab
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: Name of the image to deploy
+        required: true
+        type: string
+      container-name:
+        description: Name of the container to run
+        required: true
+        type: string
+      container-network:
+        description: Docker network to attach the container to
+        required: false
+        type: string
+        default: ""
+      deploy-secondary:
+        description: Whether to also deploy to the secondary node
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      deploy-ssh-user:
+        required: true
+      deploy-node-primary:
+        required: true
+      deploy-node-secondary:
+        required: false
+      ts-oauth-client-id:
+        required: true
+      ts-audience:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy to ${{ matrix.node.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    strategy:
+      matrix:
+        node:
+          - name: primary
+            hostname-secret: DEPLOY_NODE_PRIMARY
+          - name: secondary
+            hostname-secret: DEPLOY_NODE_SECONDARY
+        exclude:
+          - node:
+              name: secondary
+            deploy-secondary: ${{ !inputs.deploy-secondary }}
+
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.ts-oauth-client-id }}
+          audience: ${{ secrets.ts-audience }}
+          tags: tag:ci
+
+      - name: Deploy to ${{ matrix.node.name }} node
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/${{ inputs.image-name }}:latest
+          CONTAINER_NAME: ${{ inputs.container-name }}
+          CONTAINER_NETWORK: ${{ inputs.container-network }}
+          DEPLOY_SSH_USER: ${{ secrets.deploy-ssh-user }}
+          DEPLOY_NODE: ${{ matrix.node.name == 'primary' && secrets.deploy-node-primary || secrets.deploy-node-secondary }}
+        run: |
+          ssh -o StrictHostKeyChecking=no "$DEPLOY_SSH_USER"@"$DEPLOY_NODE" "
+            docker pull $IMAGE
+            docker stop $CONTAINER_NAME || true
+            docker rm $CONTAINER_NAME || true
+            docker run -d \
+              --name $CONTAINER_NAME \
+              --restart unless-stopped \
+              $([ -n '$CONTAINER_NETWORK' ] && echo '--network $CONTAINER_NETWORK') \
+              $IMAGE
+          "
